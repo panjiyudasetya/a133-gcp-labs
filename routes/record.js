@@ -11,17 +11,22 @@ const multer = Multer({
 
 // TODO: Sesuaikan konfigurasi database
 const connection = mysql.createConnection({
-    host: 'public_ip_sql_instance_Anda',
+    // NOTE: Koneksi ke MySQL ga bisa pakai host :(
+    // Timeout terus, berjam2 abis waktu karena ga tau error nya apa, bahkan ga muncul message apapun.
+    // Pas diubah error payload nya baru ngeh apa yg salah..
+    // Setelah cek dokumentasinya, ternyata preference nya pakai `socketPath` dibandingkan `host`
+    // https://cloud.google.com/sql/docs/mysql/connect-app-engine-standard#connect_to
+    socketPath: '/cloudsql/submission-mgce-panjiywiwaha:asia-southeast2:money-tracker',
     user: 'root',
-    database: 'nama_database_Anda',
-    password: 'password_sql_Anda'
+    database: 'money_tracker',
+    password: 'Test@12345'
 })
 
 router.get("/dashboard", (req, res) => {
     const query = "select (select count(*) from records where month(records.date) = month(now()) AND year(records.date) = year(now())) as month_records, (select sum(amount) from records) as total_amount;"
     connection.query(query, (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -32,7 +37,7 @@ router.get("/getrecords", (req, res) => {
     const query = "SELECT * FROM records"
     connection.query(query, (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -43,7 +48,7 @@ router.get("/getlast10records", (req, res) => {
     const query = "SELECT * FROM records ORDER BY date DESC LIMIT 10"
     connection.query(query, (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -54,7 +59,7 @@ router.get("/gettopexpense", (req, res) => {
     const query = "SELECT * FROM records WHERE amount < 0 ORDER BY amount ASC LIMIT 10"
     connection.query(query, (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -67,7 +72,7 @@ router.get("/getrecord/:id", (req, res) => {
     const query = "SELECT * FROM records WHERE id = ?"
     connection.query(query, [id], (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -81,7 +86,7 @@ router.get("/searchrecords", (req, res) => {
     const query = "SELECT * FROM records WHERE name LIKE '%" + s + "%' or notes LIKE '%" + s + "%'"
     connection.query(query, (err, rows, field) => {
         if(err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.json(rows)
         }
@@ -103,7 +108,7 @@ router.post("/insertrecord", multer.single('attachment'), imgUpload.uploadToGcs,
 
     connection.query(query, [name, amount, date, notes, imageUrl], (err, rows, fields) => {
         if (err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.send({message: "Insert Successful"})
         }
@@ -126,7 +131,7 @@ router.put("/editrecord/:id", multer.single('attachment'), imgUpload.uploadToGcs
     
     connection.query(query, [name, amount, date, notes, imageUrl, id], (err, rows, fields) => {
         if (err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.send({message: "Update Successful"})
         }
@@ -139,7 +144,7 @@ router.delete("/deleterecord/:id", (req, res) => {
     const query = "DELETE FROM records WHERE id = ?"
     connection.query(query, [id], (err, rows, fields) => {
         if (err) {
-            res.status(500).send({message: err.sqlMessage})
+            res.status(500).send({message: err})
         } else {
             res.send({message: "Delete successful"})
         }
